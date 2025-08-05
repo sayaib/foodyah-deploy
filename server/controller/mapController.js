@@ -6,6 +6,7 @@ export const addUserAddress = async (req, res) => {
     const userId = req.body.id;
     const {
       label,
+      fullAddress,
       addressLine,
       city,
       state,
@@ -14,7 +15,7 @@ export const addUserAddress = async (req, res) => {
       location, // { type: "Point", coordinates: [lng, lat] }
       isDefault = false,
     } = req.body;
-    console.log(req.body);
+    console.log(fullAddress);
     if (!addressLine || !location || !Array.isArray(location.coordinates)) {
       return res
         .status(400)
@@ -37,6 +38,7 @@ export const addUserAddress = async (req, res) => {
       city,
       state,
       country,
+      fullAddress,
       pincode,
       location,
       isDefault: setDefault,

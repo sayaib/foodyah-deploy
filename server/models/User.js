@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const addressSchema = new mongoose.Schema({
   label: { type: String, enum: ["Home", "Work", "Other"], default: "Other" },
-  addressLine: { type: String, required: true },
+  addressLine: { type: String },
+  fullAddress: { type: String, required: true },
   city: String,
   state: String,
   country: String,

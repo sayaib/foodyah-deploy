@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import Restaurant from "../models/Restaurant.js";
 import { sendDeliveryToAllPartners } from "../socket/socketServer.js";
 import calculateRouteInfo from "../utils/calculateRouteInfo.js";
+import authMiddleware from "../middleware/auth.js";
 
 // POST /api/order
 // routes/order.js
@@ -159,11 +160,23 @@ router.put("/status/:orderId/", async (req, res) => {
   try {
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { status: req.body.status, updatedAt: new Date() },
+      { 
+        status: req.body.status, 
+        statusUpdatedAt: new Date(),
+        updatedAt: new Date() 
+      },
       { new: true }
     );
+    
+    // Import here to avoid circular dependency
+    const { broadcastOrderStatusUpdate } = await import("../socket/orderTrackingSocket.js");
+    
+    // Broadcast the status update to all subscribers
+    broadcastOrderStatusUpdate(req.params.orderId, req.body.status);
+    
     res.json(updatedOrder);
   } catch (err) {
+    console.error("Error updating order status:", err);
     res.status(500).json({ error: "Failed to update order" });
   }
 });

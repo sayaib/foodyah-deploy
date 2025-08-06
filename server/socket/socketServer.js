@@ -1,10 +1,16 @@
 // socket/socketServer.js
+
 import { Server } from "socket.io";
 import Order from "../models/Order.js";
 
-const connectedPartners = new Map();
+// Map to store all connected devices: socketId => socket instance
+const connectedSockets = new Map();
+
 let io = null;
 
+/**
+ * Initialize the Socket.IO server
+ */
 export function setupSocketServer(server) {
   io = new Server(server, {
     cors: {
@@ -14,51 +20,34 @@ export function setupSocketServer(server) {
   });
 
   io.on("connection", (socket) => {
-    const partnerId = socket.handshake.query.partnerId;
+    const socketId = socket.id;
 
-    console.log("✅ Partner connected:");
-    console.log("  • Socket ID:", socket.id); // Random auto-generated
-    console.log("  • Partner ID:", partnerId); // Your custom ID
-    console.log(`✅ Partner connected: ${socket.id}`);
-    connectedPartners.set(socket.id, { connectedAt: new Date() });
+    console.log("✅ New device connected");
+    console.log("   • Socket ID:", socketId);
 
-    // socket.on("locationUpdate", async (location) => {
-    //   console.log(`📍 Location from ${socket.id}:`, location);
+    // Store socket in the map
+    connectedSockets.set(socketId, socket);
 
-    //   try {
-    //     const updatedOrder = await Order.findOneAndUpdate(
-    //       { _id: "688b8d9b7a3aa451549590d5" },
-    //       {
-    //         $set: {
-    //           deliveryLocation: {
-    //             type: "Point",
-    //             coordinates: [location?.longitude, location?.latitude],
-    //           },
-    //         },
-    //       },
-    //       { new: true }
-    //     );
-
-    //     if (updatedOrder) {
-    //       console.log(`✅ Order updated with delivery location`);
-    //     } else {
-    //       console.warn(`⚠️ Order  not found`);
-    //     }
-    //   } catch (err) {
-    //     console.error("❌ Failed to update deliveryLocation:", err);
-    //   }
-    // });
-
+    /**
+     * 🛰️ Handle location updates from the device
+     * Payload: { lat: Number, lon: Number }
+     */
     socket.on("updateLocation", async (location) => {
-      console.log("Dd", location);
+      console.log(`📍 Location update from ${socketId}:`, location);
+
+      if (!location?.lat || !location?.lon) {
+        console.warn(`⚠️ Invalid location from ${socketId}`);
+        return;
+      }
+
       try {
         const updatedOrder = await Order.findOneAndUpdate(
-          { customer_email: "sayaib.osl@gmail.com" },
+          { socketId }, // Ensure your Order model includes a socketId field
           {
             $set: {
               deliveryLocation: {
                 type: "Point",
-                coordinates: [location?.lon, location?.lat],
+                coordinates: [location.lon, location.lat],
               },
             },
           },
@@ -66,79 +55,73 @@ export function setupSocketServer(server) {
         );
 
         if (updatedOrder) {
-          console.log(`✅ Order updated with delivery location`);
+          console.log(`✅ Order location updated for ${socketId}`);
         } else {
-          console.warn(`⚠️ Order  not found`);
+          console.warn(`⚠️ No matching order for socket ID ${socketId}`);
         }
       } catch (err) {
-        console.error("❌ Failed to update deliveryLocation:", err);
+        console.error(`❌ Error updating location for ${socketId}:`, err);
       }
-
-      // let longitude = location?.longitude;
-      // let latitude = location?.latitude;
-      // // Base location from partner
-
-      // // Add a tiny offset based on socketId hash for testing uniqueness
-      // const hash = [...socket.id].reduce(
-      //   (acc, ch) => acc + ch.charCodeAt(0),
-      //   0
-      // );
-      // // Generate small random offset: ±0.0005 to ±0.0015
-      // const randomOffset = () => (Math.random() * 0.001 - 0.0005).toFixed(6); // Example: 0.000263
-
-      // const modifiedLat = latitude + parseFloat(randomOffset());
-      // const modifiedLng = longitude + parseFloat(randomOffset());
-
-      // try {
-      //   const updatedOrder = await Order.findOneAndUpdate(
-      //     { _id: "688bd37d89f84bb35c14d767" }, // Make sure this is an ObjectId if needed
-      //     {
-      //       $set: {
-      //         deliveryLocation: {
-      //           type: "Point",
-      //           coordinates: [modifiedLng, modifiedLat],
-      //         },
-      //       },
-      //     },
-      //     { new: true }
-      //   );
-
-      //   if (updatedOrder) {
-      //     console.log(`✅ Order  updated with modified delivery location`);
-      //     console.log(`🧭 New Location: [${modifiedLng}, ${modifiedLat}]`);
-      //   } else {
-      //     console.warn(`⚠️ Order not found`);
-      //   }
-      // } catch (err) {
-      //   console.error("❌ Failed to update deliveryLocation:", err);
-      // }
     });
 
-    socket.on("accept_order", (data) => {
-      console.log(`📦 Order accepted by ${socket.id}:`, data);
+    /**
+     * 📦 Handle order acceptance
+     * Payload: { orderId, status, ... }
+     */
+    socket.on("new_delivery_request", (data) => {
+      console.log(`📦 Delivery request accepted by ${socketId}:`, data);
+      // Optional: Save acceptance in DB or notify customer
     });
 
+    /**
+     * ❌ Handle disconnection
+     */
     socket.on("disconnect", () => {
-      console.log(`🔌 Partner disconnected: ${socket.id}`);
-      connectedPartners.delete(socket.id);
+      console.log(`🔌 Device disconnected: ${socketId}`);
+      connectedSockets.delete(socketId);
     });
   });
 
   console.log("🚀 Socket.IO server initialized");
 }
 
-export function sendDeliveryToAllPartners(orderData) {
+/**
+ * 🔄 Send order request to all connected sockets
+ * @param {Object} orderData - order details to send
+ * @returns {number} number of devices notified
+ */
+export function sendDeliveryToAllDevices(orderData) {
   if (!io) {
-    console.warn("⚠️ Socket.IO not initialized yet.");
+    console.warn("⚠️ Socket.IO not initialized.");
     return 0;
   }
 
-  let sentCount = 0;
-  connectedPartners.forEach((_info, socketId) => {
-    io.to(socketId).emit("delivery_request", orderData);
-    console.log(`📨 Sent delivery request to ${socketId}`);
-    sentCount++;
-  });
+  let count = 0;
 
-  return sentCount;
+  for (const [socketId, socket] of connectedSockets.entries()) {
+    socket.emit("new_delivery_request", orderData);
+    console.log(`📨 Sent delivery request to ${socketId}`);
+    count++;
+  }
+
+  return count;
+}
+
+/**
+ * 🎯 Send order request to a specific socket ID
+ * @param {string} socketId - target device socket ID
+ * @param {Object} orderData - order details
+ * @returns {boolean} success
+ */
+export function sendDeliveryToAllPartners(socketId, orderData) {
+  const socket = connectedSockets.get(socketId);
+
+  if (socket) {
+    socket.emit("new_delivery_request", orderData);
+    console.log(`📨 Sent delivery request to ${socketId}`);
+    return true;
+  } else {
+    console.warn(`⚠️ Socket ID ${socketId} not connected`);
+    return false;
+  }
 }

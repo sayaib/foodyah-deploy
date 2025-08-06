@@ -164,6 +164,46 @@ router.post("/verify", async (req, res) => {
   res.json({ success: true, message: "Status updated" });
 });
 
+// Update commission percentage
+router.put("/commission/:id", authMiddleware, async (req, res) => {
+  try {
+    const { commission_percentage } = req.body;
+    
+    if (!commission_percentage || commission_percentage < 0 || commission_percentage > 100) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Commission percentage must be between 0 and 100" 
+      });
+    }
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      { commission_percentage },
+      { new: true }
+    );
+
+    if (!restaurant) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Restaurant not found" 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Commission percentage updated",
+      commission_percentage: restaurant.commission_percentage
+    });
+  } catch (err) {
+    console.error("Error updating commission:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: err.message 
+    });
+  }
+});
+
 router.get("/data/:userLat/:userLng", async (req, res) => {
   try {
     const { userLat, userLng } = req.params;

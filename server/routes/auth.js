@@ -222,7 +222,11 @@ router.delete("/deleteUser/:id/:role", async (req, res) => {
 
 router.post("/addAdminUser", async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const existing = await User.findOne({ email });
     if (existing)
@@ -232,6 +236,7 @@ router.post("/addAdminUser", async (req, res) => {
       name,
       email,
       phone,
+      password,
       role: "admin",
       isVerified: true,
       otp: null,

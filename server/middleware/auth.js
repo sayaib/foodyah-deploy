@@ -14,7 +14,17 @@ export default async function authMiddleware(req, res, next) {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    req.user = user; // ✅ Inject user into request
+    // Ensure user object has _id property
+    req.user = {
+      _id: user._id,
+      id: user._id, // For backward compatibility
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      ...user._doc // Include all other user properties
+    };
+    
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token", error: err.message });

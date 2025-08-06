@@ -48,6 +48,9 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "placed",
     },
+    statusUpdatedAt: { type: Date, default: Date.now },
+    estimatedDeliveryTime: { type: Number }, // in minutes
+    estimatedDistance: { type: Number }, // in kilometers
     promoCode: String,
   },
   { timestamps: true }

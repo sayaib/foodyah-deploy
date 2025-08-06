@@ -2,4 +2,4 @@
 
 # NPM : 10.9.2
 
-# MongoDB : 7.0
+# MongoDB : v7.0

@@ -1,6 +1,8 @@
 // utils/getDistanceAndDuration.js
 import fetch from "node-fetch";
+import dotenv from "dotenv";
 
+dotenv.config();
 const MAPBOX_PA = process.env.MAPBOX_PA; // Your Mapbox access token
 
 /**

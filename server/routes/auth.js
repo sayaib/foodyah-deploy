@@ -42,7 +42,8 @@ router.post("/request-otp", async (req, res) => {
 
   // Generate and save OTP
   const otp = generateOTP();
-  user.otp = otp;
+  // user.otp = otp;
+  user.otp = "123456";
   await user.save();
 
   return res.json({ msg: "OTP sent", otp, newUser: false });

@@ -2,6 +2,7 @@ import express from "express";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import generateOTP from "../utils/generateOTP.js";
+import Order from "../models/Order.js";
 
 const router = express.Router();
 
@@ -119,6 +120,26 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     console.error("Registration error:", err.message);
     return res.status(500).json({ success: false, msg: "Server error" });
+  }
+});
+
+// Get order by ID for delivery boy
+router.get("/getCurrentOrderForDeliveryBoy/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    return res.status(200).json({ success: true, order });
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

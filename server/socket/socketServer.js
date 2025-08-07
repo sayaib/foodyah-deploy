@@ -35,7 +35,7 @@ export function setupSocketServer(server) {
     socket.on("updateLocation", async (location) => {
       console.log(`📍 Location update from ${socketId}:`, location);
 
-      if (!location?.lat || !location?.lon) {
+      if (!location?.latitude || !location?.longitude) {
         console.warn(`⚠️ Invalid location from ${socketId}`);
         return;
       }
@@ -68,6 +68,10 @@ export function setupSocketServer(server) {
      * 📦 Handle order acceptance
      * Payload: { orderId, status, ... }
      */
+
+    socket.on("delivery_response", (data) => {
+      console.log("response", data);
+    });
     socket.on("new_delivery_request", (data) => {
       console.log(`📦 Delivery request accepted by ${socketId}:`, data);
       // Optional: Save acceptance in DB or notify customer

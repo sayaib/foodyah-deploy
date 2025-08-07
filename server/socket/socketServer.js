@@ -41,23 +41,25 @@ export function setupSocketServer(server) {
       }
 
       try {
-        const updatedOrder = await Order.findOneAndUpdate(
-          { socketId }, // Ensure your Order model includes a socketId field
-          {
-            $set: {
-              deliveryLocation: {
-                type: "Point",
-                coordinates: [location.lon, location.lat],
+        if (location.orderId !== "") {
+          const updatedOrder = await Order.findOneAndUpdate(
+            { _id: location.orderId }, // Ensure your Order model includes a socketId field
+            {
+              $set: {
+                deliveryLocation: {
+                  type: "Point",
+                  coordinates: [location.longitude, location.latitude],
+                },
               },
             },
-          },
-          { new: true }
-        );
+            { new: true }
+          );
 
-        if (updatedOrder) {
-          console.log(`✅ Order location updated for ${socketId}`);
-        } else {
-          console.warn(`⚠️ No matching order for socket ID ${socketId}`);
+          if (updatedOrder) {
+            console.log(`✅ Order location updated for ${socketId}`);
+          } else {
+            console.warn(`⚠️ No matching order for socket ID ${socketId}`);
+          }
         }
       } catch (err) {
         console.error(`❌ Error updating location for ${socketId}:`, err);

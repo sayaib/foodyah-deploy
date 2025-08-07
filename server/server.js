@@ -1,7 +1,6 @@
 // server.js
 import dotenv from "dotenv";
 import express from "express";
-import path from "path";
 import http from "http";
 import cors from "cors";
 import connectDB from "./config/db.js";
@@ -54,10 +53,9 @@ app.use("/api/server", flutterAuth);
 app.use("/api/socket", socketRoute);
 
 // Static serving
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static("dist"));
 app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+  res.sendFile("index.html", { root: "dist" });
 });
 
 // Start the server
